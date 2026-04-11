@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://clqg6i30n1rey"]
 
-[ext_resource type="PackedScene" uid="uid://yghuhmsnbys8" path="res://src/scenes/npc.tscn" id="1_tabwl"]
 [ext_resource type="ArrayMesh" uid="uid://bj63g557ayqbt" path="res://src/assets/tree-autumn-tall.obj" id="2_x4uf2"]
 [ext_resource type="ArrayMesh" uid="uid://b5goqi26b4uyj" path="res://src/assets/patch-grass-large.obj" id="3_x4uf2"]
 [ext_resource type="ArrayMesh" uid="uid://dfd5rinys0u4y" path="res://src/assets/rock-flat-grass.obj" id="4_t1eg8"]
@@ -12,6 +11,9 @@
 [ext_resource type="ArrayMesh" uid="uid://c6753gpul25lp" path="res://src/assets/tree-trunk.obj" id="10_6pid7"]
 [ext_resource type="ArrayMesh" uid="uid://bn3h0l51mwa8e" path="res://src/assets/rock-b.obj" id="11_rugkn"]
 [ext_resource type="Script" uid="uid://c6e7ugrax8rni" path="res://src/scenes/day_night_controller.gd" id="12_rugkn"]
+[ext_resource type="PackedScene" uid="uid://c8b3u3sv2ioiq" path="res://src/scenes/player.tscn" id="12_x355f"]
+[ext_resource type="Script" uid="uid://pu0x2bfa36be" path="res://src/scripts/api/api_manager.gd" id="13_x355f"]
+[ext_resource type="Script" uid="uid://iow6fg0w30v2" path="res://src/scripts/controllers/npc_controller.gd" id="14_aakig"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_x4uf2"]
 
@@ -64,12 +66,10 @@ data = PackedVector3Array(0.12879999, 0.4186, 0.0898, 0.12879999, 0.4186, -0.026
 
 [node name="Mundo" type="Node3D" unique_id=1609622083]
 
-[node name="Npc" parent="." unique_id=854200345 instance=ExtResource("1_tabwl")]
-transform = Transform3D(1, 0, 0, 0, 0.99805623, -0.062320203, 0, 0.062320203, 0.99805623, 0, 5.4692173, 3.5293694)
-
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1372957046]
 transform = Transform3D(0.7071068, -0.40557978, 0.579228, 0.0016907622, 0.8201195, 0.5721898, -0.7071048, -0.40361997, 0.5805979, 12.846382, 16.418953, 20.440674)
 projection = 1
+current = true
 size = 43.75
 far = 65.0
 
@@ -377,3 +377,14 @@ script = ExtResource("12_rugkn")
 sun = NodePath("../LightSun")
 moon = NodePath("../LightMoon")
 world_env = NodePath("../WorldEnvironment")
+
+[node name="Player" parent="." unique_id=1319446198 instance=ExtResource("12_x355f")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.0996833, 0.23004591, 4.3819184)
+
+[node name="ApiManager" type="Node" parent="." unique_id=2084945510]
+script = ExtResource("13_x355f")
+
+[node name="NpcController" type="Node" parent="." unique_id=455596259]
+script = ExtResource("14_aakig")
+npc_path = NodePath("../Player")
+api_manager_path = NodePath("../ApiManager")

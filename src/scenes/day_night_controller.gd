@@ -32,7 +32,7 @@ func _process(delta):
 	debug_timer += delta
 	if debug_timer >= debug_interval:
 		debug_timer = 0.0
-		_print_debug()
+		#_print_debug()
 
 # 🔥 BASE CORRECTA (FIX PRINCIPAL)
 func _get_height():
