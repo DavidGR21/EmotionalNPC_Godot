@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://c8b3u3sv2ioiq"]
+
+[ext_resource type="Script" uid="uid://c7bxglifhsjpb" path="res://src/scripts/entities/npc.gd" id="1_v4rts"]
+[ext_resource type="PackedScene" uid="uid://ciktxtmyoc2sp" path="res://src/assets/character-a.glb" id="2_hwyk6"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_v4rts"]
+
+[node name="Player" type="CharacterBody3D" unique_id=1319446198]
+script = ExtResource("1_v4rts")
+animation_player_path = NodePath("characterA/AnimationPlayer")
+
+[node name="characterA" parent="." unique_id=45012625 instance=ExtResource("2_hwyk6")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=500936783]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0650921, 0)
+shape = SubResource("CapsuleShape3D_v4rts")
+
+[editable path="characterA"]
