@@ -203,8 +203,10 @@ day_night_controller_path = NodePath("../DayNightController")
 
 [node name="PanelEmocional" type="ColorRect" parent="CanvasLayer" unique_id=2037723549]
 custom_minimum_size = Vector2(100, 100)
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 1033.0
+offset_top = 11.0
+offset_right = 1133.0
+offset_bottom = 111.0
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=1868306453]
 navigation_mesh = SubResource("NavigationMesh_aakig")
