@@ -5,6 +5,8 @@ signal state_changed(previous_state: String, new_state: String)
 @export_enum("Raycast Steering (Matemática Pura)", "Navigation Mesh (A* Nativo de Godot)") var obstacle_avoidance_mode: int = 0
 
 @export var panel_emocional: ColorRect
+@export var metrics_label: Label
+@export var emoji_label: Label3D
 @export var animation_player_path: NodePath
 @export var animation_blend_sec: float = 0.2
 @export var walk_radius: float = 0.7
@@ -30,6 +32,14 @@ const STATE_TO_ANIMATION := {
 	"observe": "static",
 	"flee": "sprint",
 	"hide": "die"
+}
+
+const STATE_TO_EMOJI := {
+	"idle": "💤",
+	"explore": "🌳",
+	"observe": "🧐",
+	"flee": "🏃💨",
+	"hide": "🙈"
 }
 
 var npc_id: String = ""
@@ -76,12 +86,28 @@ func apply_api_state(data: Dictionary) -> void:
 			color_emocional = Color.RED
 			
 		# 5. Aplicar animación suave
+		# 5. Aplicar animación suave al ColorRect
 		if panel_emocional:
 			print("Aplicando color: ", color_emocional, " al panel: ", panel_emocional.name)
 			var tween = create_tween()
 			tween.tween_property(panel_emocional, "color", color_emocional, 0.5)
 		else:
-			push_error("Error: panel_emocional es NULL. No se asignó el nodo en el inspector.")
+			push_warning("NPC %s: panel_emocional no asignado." % npc_id)
+			
+		# 6. Actualizar Texto de Métricas en el Label
+		if metrics_label:
+			var stress = float(metrics.get("stress", 0.0))
+			metrics_label.text = "Valence: %.2f\nArousal: %.2f\nStress: %.2f" % [valence, arousal, stress]
+			
+			# 7. Lógica de Emoji de Pánico (Si el estrés es altísimo, ignoramos el estado)
+			if emoji_label:
+				if stress > 0.8:
+					emoji_label.text = "😨"
+				else:
+					# Volver al emoji del estado actual si el estrés bajó
+					emoji_label.text = STATE_TO_EMOJI.get(current_state, "❓")
+		else:
+			push_warning("NPC %s: metrics_label no asignado." % npc_id)
 func set_state(new_state: String) -> void:
 	if not VALID_STATES.has(new_state):
 		push_warning("NPC %s: estado invalido '%s'." % [npc_id, new_state])
@@ -102,6 +128,11 @@ func set_state(new_state: String) -> void:
 		forward = Vector3.BACK
 	_state_forward = forward.normalized()
 	_play_animation_for_state(current_state)
+	
+	# Actualizar Emoji de inmediato al cambiar estado
+	if emoji_label:
+		emoji_label.text = STATE_TO_EMOJI.get(current_state, "❓")
+		
 	state_changed.emit(previous, current_state)
 
 func _extract_state_from_response(data: Dictionary) -> String:
@@ -147,6 +178,35 @@ func _ready() -> void:
 	_nav_agent.path_desired_distance = 0.5
 	_nav_agent.target_desired_distance = 0.5
 	add_child(_nav_agent)
+	
+	# --- AUTO-CREACIÓN DE ETIQUETA SI NO EXISTE ---
+	if metrics_label == null and panel_emocional != null:
+		var new_label = Label.new()
+		new_label.name = "DynamicMetricsLabel"
+		# Posicionar justo debajo del panel emocional
+		new_label.position = panel_emocional.position + Vector2(0, panel_emocional.size.y + 10)
+		# Añadirlo al mismo padre que el panel
+		panel_emocional.get_parent().add_child(new_label)
+		metrics_label = new_label
+		
+	if emoji_label == null:
+		var new_emoji = Label3D.new()
+		new_emoji.name = "DynamicEmojiLabel"
+		new_emoji.position = Vector3(0, 2.2, 0) # Elevado para que no tape la cara
+		new_emoji.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		
+		# --- MEJORA DE VISIBILIDAD (Calibración Definitiva) ---
+		new_emoji.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM # Ancla el emoji por su base
+		new_emoji.fixed_size = false      
+		new_emoji.pixel_size = 0.012      # Un toque más pequeño que antes para mayor elegancia
+		new_emoji.font_size = 120         
+		new_emoji.outline_size = 20       
+		new_emoji.no_depth_test = true    
+		
+		new_emoji.text = STATE_TO_EMOJI.get(current_state, "❓")
+		add_child(new_emoji)
+		emoji_label = new_emoji
+		print("✅ Emoji calibrado a escala real sobre el NPC")
 	
 	_state_anchor = global_position
 	_current_waypoint = _state_anchor
