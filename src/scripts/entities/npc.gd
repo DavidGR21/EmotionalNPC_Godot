@@ -2,6 +2,7 @@ extends CharacterBody3D
 
 signal state_changed(previous_state: String, new_state: String)
 
+@export var panel_emocional: ColorRect
 @export var animation_player_path: NodePath
 @export var animation_blend_sec: float = 0.2
 @export var walk_radius: float = 0.7
@@ -48,6 +49,34 @@ func apply_api_state(data: Dictionary) -> void:
 		return
 	set_state(next_state)
 
+	# --- NUEVA LÓGICA DE COLOR (Espectro Emocional) ---
+	print("Data in apply_api_state: ", data)
+	if data.has("metrics"):
+		var metrics = data["metrics"]
+		var valence = float(metrics.get("valence", 0.5))
+		var arousal = float(metrics.get("arousal", 0.5))
+		print("Valence: ", valence, ", Arousal: ", arousal)
+		
+		# 1. Mapeamos Valence a Hue (Tono). De rojo a cian.
+		var hue = lerp(0.0, 0.5, valence) 
+		
+		# 2. Mapeamos Arousal a Brillo. Oscuro a iluminado.
+		var brightness = lerp(0.2, 1.0, arousal) 
+		
+		# 3. Construimos el color
+		var color_emocional = Color.from_hsv(hue, 0.9, brightness)
+		
+		# 4. Modificamos color drástico en estado de huir
+		if current_state == "flee":
+			color_emocional = Color.RED
+			
+		# 5. Aplicar animación suave
+		if panel_emocional:
+			print("Aplicando color: ", color_emocional, " al panel: ", panel_emocional.name)
+			var tween = create_tween()
+			tween.tween_property(panel_emocional, "color", color_emocional, 0.5)
+		else:
+			push_error("Error: panel_emocional es NULL. No se asignó el nodo en el inspector.")
 func set_state(new_state: String) -> void:
 	if not VALID_STATES.has(new_state):
 		push_warning("NPC %s: estado invalido '%s'." % [npc_id, new_state])

@@ -378,8 +378,9 @@ sun = NodePath("../LightSun")
 moon = NodePath("../LightMoon")
 world_env = NodePath("../WorldEnvironment")
 
-[node name="Player" parent="." unique_id=1319446198 instance=ExtResource("12_x355f")]
+[node name="Player" parent="." unique_id=1319446198 node_paths=PackedStringArray("panel_emocional") instance=ExtResource("12_x355f")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.0996833, 0.23004591, 4.3819184)
+panel_emocional = NodePath("../CanvasLayer/PanelEmocional")
 
 [node name="ApiManager" type="Node" parent="." unique_id=2084945510]
 script = ExtResource("13_x355f")
@@ -388,3 +389,10 @@ script = ExtResource("13_x355f")
 script = ExtResource("14_aakig")
 npc_path = NodePath("../Player")
 api_manager_path = NodePath("../ApiManager")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=818854725]
+
+[node name="PanelEmocional" type="ColorRect" parent="CanvasLayer" unique_id=2037723549]
+custom_minimum_size = Vector2(100, 100)
+offset_right = 40.0
+offset_bottom = 40.0
