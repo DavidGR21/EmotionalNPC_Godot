@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 signal state_changed(previous_state: String, new_state: String)
 
+@export_enum("Raycast Steering (Matemática Pura)", "Navigation Mesh (A* Nativo de Godot)") var obstacle_avoidance_mode: int = 0
+
 @export var panel_emocional: ColorRect
 @export var animation_player_path: NodePath
 @export var animation_blend_sec: float = 0.2
@@ -34,7 +36,10 @@ var npc_id: String = ""
 var personality: String = "normal"
 var current_state: String = "idle"
 var _animation_player: AnimationPlayer
+var _nav_agent: NavigationAgent3D
 var _state_anchor: Vector3
+var _current_waypoint: Vector3
+var _waypoint_timer: float = 0.0
 var _state_time: float = 0.0
 var _state_forward: Vector3 = Vector3.FORWARD
 
@@ -88,6 +93,8 @@ func set_state(new_state: String) -> void:
 	var previous := current_state
 	current_state = new_state
 	_state_anchor = global_position
+	_current_waypoint = _state_anchor
+	_waypoint_timer = 0.0
 	_state_time = 0.0
 	var forward := global_basis.z
 	forward.y = 0.0
@@ -134,12 +141,22 @@ func _ready() -> void:
 	_animation_player = get_node_or_null(animation_player_path) as AnimationPlayer
 	if animation_player_path != NodePath("") and _animation_player == null:
 		push_warning("NPC %s: animation_player_path invalido." % npc_id)
+		
+	# Instanciamos el Agente de Navegación A* matemáticamente para que no tengas que enlazar nada nuevo en UI
+	_nav_agent = NavigationAgent3D.new()
+	_nav_agent.path_desired_distance = 0.5
+	_nav_agent.target_desired_distance = 0.5
+	add_child(_nav_agent)
+	
 	_state_anchor = global_position
+	_current_waypoint = _state_anchor
 	_play_animation_for_state(current_state)
 
 
 func _physics_process(delta: float) -> void:
 	_state_time += delta
+	_waypoint_timer -= delta
+	
 	var target: Vector3 = _get_target_position_for_state()
 	var flat_delta := target - global_position
 	flat_delta.y = 0.0
@@ -147,8 +164,28 @@ func _physics_process(delta: float) -> void:
 	var desired_velocity := Vector3.ZERO
 	if flat_delta.length() > 0.03:
 		var desired_speed := _get_move_speed_for_state()
-		desired_velocity = flat_delta.normalized() * desired_speed
-
+		
+		# --- DECISIÓN DEL MOTOR DE INTELIGENCIA FÍSICA ---
+		if obstacle_avoidance_mode == 0:
+			# -> OPCIÓN 0: RAYCAST STEERING (Evitación Vectorial)
+			var raw_dir = flat_delta.normalized()
+			var avoid_vector = _calculate_obstacle_avoidance(raw_dir)
+			
+			# Suaviza el giro combinando el deseo original con la fuerza de repulsión de los troncos
+			var final_dir = (raw_dir + (avoid_vector * 2.5)).normalized() # Subimos fuerza de repulsión a 2.5
+			desired_velocity = final_dir * desired_speed
+			
+		elif obstacle_avoidance_mode == 1:
+			# -> OPCIÓN 1: NAVIGATION MESH (Algoritmo Clásico A*)
+			_nav_agent.target_position = target
+			if not _nav_agent.is_navigation_finished():
+				var next_point = _nav_agent.get_next_path_position()
+				var nav_dir = (next_point - global_position).normalized()
+				nav_dir.y = 0.0
+				desired_velocity = nav_dir * desired_speed
+			else:
+				desired_velocity = Vector3.ZERO
+			
 	_sync_movement_animation(desired_velocity)
 
 	var accel := stop_acceleration
@@ -166,10 +203,18 @@ func _physics_process(delta: float) -> void:
 
 
 func _get_target_position_for_state() -> Vector3:
-	if current_state == "explore":
-		var angle := _state_time * walk_cycle_speed
-		var offset := Vector3(cos(angle), 0.0, sin(angle)) * walk_radius
-		return _state_anchor + offset
+	if current_state == "explore" or current_state == "idle":
+		# Nuevo Sistema: Elegir puntos aleatorios progresivamente (Waypoints) en lugar de dar vueltas tontas
+		if global_position.distance_to(_current_waypoint) < 0.8 or _waypoint_timer <= 0.0:
+			var rand_angle = randf() * TAU
+			# Ignora el "walk radius 0.7" si es muy chico, garantizamos caminatas de 3 a 5 metros
+			var dist = randf_range(2.0, maxf(walk_radius, 5.0))
+			_current_waypoint = _state_anchor + Vector3(cos(rand_angle), 0.0, sin(rand_angle)) * dist
+			
+			# En idle se cansa rápido (elige nuevo punto y asimila más rápido), explore es más consistente
+			_waypoint_timer = randf_range(4.0, 7.0) if current_state == "idle" else randf_range(2.5, 5.0)
+			
+		return _current_waypoint
 
 	if current_state == "flee":
 		var wave := sin(_state_time * sprint_cycle_speed)
@@ -181,6 +226,9 @@ func _get_target_position_for_state() -> Vector3:
 func _get_move_speed_for_state() -> float:
 	if current_state == "explore":
 		return maxf(walk_speed, 0.1)
+		
+	if current_state == "idle":
+		return maxf(walk_speed * 0.5, 0.1) # Paseo calmado si está en idle
 
 	if current_state == "flee":
 		return maxf(sprint_speed, 0.1)
@@ -192,13 +240,18 @@ func _sync_movement_animation(desired_velocity: Vector3) -> void:
 	if _animation_player == null:
 		return
 
-	if current_state != "explore" and current_state != "flee":
+	if current_state != "explore" and current_state != "flee" and current_state != "idle":
 		return
 
 	if desired_velocity.length() < 0.03:
 		return
 
 	var expected_animation: String = str(STATE_TO_ANIMATION.get(current_state, ""))
+	
+	# Si es idle pero se está moviendo (nuestra nueva lógica), forzamos la animación a "walk"
+	if current_state == "idle" and desired_velocity.length() >= 0.03:
+		expected_animation = "walk"
+		
 	if expected_animation == "":
 		return
 
@@ -212,3 +265,39 @@ func _sync_movement_animation(desired_velocity: Vector3) -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	pass
+
+# --- ALGORITMOS DE EVASIÓN MATEMÁTICA ANTE OBSTÁCULOS (Opción 0) ---
+func _calculate_obstacle_avoidance(forward_dir: Vector3) -> Vector3:
+	var space_state = get_world_3d().direct_space_state
+	var avoidance = Vector3.ZERO
+	
+	var ray_length = 2.0 # Aumentamos alcance visual frontal a 2 metros
+	var num_rays = 7     # Lanza 7 rayos sensoriales para más precisión
+	var arc_angle = PI / 1.5 # Ampliamos la visión a 120 grados frente a él
+	
+	var query = PhysicsRayQueryParameters3D.new()
+	query.collision_mask = 1 # Choca contra la primera capa de física (donde están tus árboles)
+	query.exclude = [self.get_rid()] # Evitar asustarse de su propio cuerpo
+	
+	for i in range(num_rays):
+		# Generar los ángulos de los "bigotes" del gato (-45° a +45°)
+		var t = float(i) / float(num_rays - 1) if num_rays > 1 else 0.5
+		var angle = lerp(-arc_angle/2.0, arc_angle/2.0, t)
+		var dir = forward_dir.rotated(Vector3.UP, angle)
+		
+		# Proyectar el rayo desde la panza/pecho (altura 0.5) para no estallar con el piso
+		var origin = global_position + Vector3(0, 0.5, 0)
+		query.from = origin
+		query.to = origin + (dir * ray_length)
+		
+		var result = space_state.intersect_ray(query)
+		if result:
+			# Si un láser choca contra un tronco, crea una fuerza repulsiva opuesta fuerte
+			var distance_factor = 1.0 - (origin.distance_to(result.position) / ray_length)
+			avoidance += -dir * distance_factor
+
+	# Normaliza la alerta final para balancear con suavidad el empujón principal del juego
+	if avoidance.length() > 0.01:
+		avoidance = avoidance.normalized()
+		
+	return avoidance
