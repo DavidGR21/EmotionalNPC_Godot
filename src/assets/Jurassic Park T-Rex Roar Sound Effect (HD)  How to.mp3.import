@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://c22s4nw6bllai"
+path="res://.godot/imported/Jurassic Park T-Rex Roar Sound Effect (HD)  How to.mp3-7af4aa8835c73f7fbd59023bf0cadee7.mp3str"
+
+[deps]
+
+source_file="res://src/assets/Jurassic Park T-Rex Roar Sound Effect (HD)  How to.mp3"
+dest_files=["res://.godot/imported/Jurassic Park T-Rex Roar Sound Effect (HD)  How to.mp3-7af4aa8835c73f7fbd59023bf0cadee7.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

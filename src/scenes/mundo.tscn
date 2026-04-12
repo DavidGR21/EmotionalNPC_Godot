@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://iow6fg0w30v2" path="res://src/scripts/controllers/npc_controller.gd" id="14_aakig"]
 [ext_resource type="Script" uid="uid://dmxks04a1nmy3" path="res://src/scripts/entities/trex.gd" id="15_4il80"]
 [ext_resource type="PackedScene" uid="uid://536rab08quc5" path="res://src/assets/T-Rex.glb" id="16_60xvl"]
+[ext_resource type="AudioStream" uid="uid://dnqhht7ttih6y" path="res://src/assets/rugido.mp3" id="17_60xvl"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_x4uf2"]
 
@@ -419,11 +420,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.79458, 0, 3.1533623)
 script = ExtResource("15_4il80")
 roar_cooldown_min = 5.0
 roar_cooldown_max = 5.0
-roar_duration = 0.5
+roar_duration = 0.4
 animation_player_path = NodePath("Root Scene/AnimationPlayer")
 anim_idle = "Armature|TRex_Idle"
 anim_walk = "Armature|TRex_Walk"
 anim_roar = "Armature|TRex_Death"
+audio_roar_path = NodePath("AudioStreamPlayer3D")
 
 [node name="Root Scene" parent="TRex" unique_id=1267165661 instance=ExtResource("16_60xvl")]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0, 0)
@@ -431,5 +433,8 @@ transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0, 0)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TRex" unique_id=384430998]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41064644, 2.343872, 0.2601242)
 shape = SubResource("CylinderShape3D_4il80")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="TRex" unique_id=1673755151]
+stream = ExtResource("17_60xvl")
 
 [editable path="TRex/Root Scene"]

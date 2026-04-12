@@ -12,6 +12,9 @@ extends CharacterBody3D
 @export var anim_walk: String = "Walk"
 @export var anim_roar: String = "Roar"
 
+@export_group("Audio")
+@export var audio_roar_path: NodePath
+
 # 🔴 VARIABLE CLAVE: Este es el número que el cerebro del NPC va a vigilar.
 var roar_intensity: float = 0.0
 
@@ -21,9 +24,11 @@ var _walk_timer: float = 0.0
 var _roar_timer: float = 0.0
 var _is_roaring: bool = false
 var _anim_player: AnimationPlayer
+var _audio_roar: AudioStreamPlayer3D
 
 func _ready() -> void:
 	_anim_player = get_node_or_null(animation_player_path) as AnimationPlayer
+	_audio_roar = get_node_or_null(audio_roar_path) as AudioStreamPlayer3D
 	_anchor_pos = global_position
 	_target_pos = _anchor_pos
 	_pick_new_waypoint()
@@ -117,6 +122,10 @@ func _start_roar() -> void:
 	_roar_timer = roar_duration # Usa la duración personalizable
 	roar_intensity = 1.0 # Al máximo nivel enviando estrés al sistema
 	velocity = Vector3.ZERO # El T-Rex frena para rugir
+	
+	if _audio_roar != null:
+		_audio_roar.play()
+		
 	print("🦖 ¡RRRWAAAAAAAAAAAR! (Pulso Sonoro Emitido Globalmente)")
 
 # --- SISTEMA SENSORIAL DEL T-REX ---
