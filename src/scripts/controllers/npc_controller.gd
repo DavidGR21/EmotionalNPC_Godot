@@ -117,8 +117,10 @@ func _process(delta: float) -> void:
 		# Mapear la altura del sol (-1 a 1) a nivel de luz (0 a 1)
 		env_light = clamp((sun_height + 0.3) / 0.8, 0.0, 1.0)
 	else:
-		# Si no hay nodo de día/noche vinculado, asumimos luz fija 0.8
-		env_light = 0.8
+		# Si no hay nodo de día/noche vinculado, simulamos un ciclo de luz lento para pruebas
+		var t_light = float(Time.get_ticks_msec()) / 1000.0
+		# Ciclo súper lento (emula horas del día)
+		env_light = (sin(t_light * 0.1) + 1.0) * 0.5 
 		
 	# 2. Calcular Amenaza y Sonido respecto al Jugador
 	if _player != null and _player != _npc:

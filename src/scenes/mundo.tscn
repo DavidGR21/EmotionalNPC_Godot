@@ -389,6 +389,7 @@ script = ExtResource("13_x355f")
 script = ExtResource("14_aakig")
 npc_path = NodePath("../Player")
 api_manager_path = NodePath("../ApiManager")
+day_night_controller_path = NodePath("../DayNightController")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=818854725]
 
