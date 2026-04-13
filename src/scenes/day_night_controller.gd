@@ -4,7 +4,7 @@ extends Node
 @export var moon: DirectionalLight3D
 @export var world_env: WorldEnvironment
 
-var time_of_day := 0.5
+var time_of_day := 0.5 # EMPIEZA AL MEDIODÍA PERFECTO (DÍA TOTAL)
 var day_duration := 20.0
 var env: Environment
 
@@ -21,12 +21,38 @@ func _ready():
 	if env == null:
 		push_error("WorldEnvironment sin Environment")
 		return
-
-func _process(delta):
-	time_of_day += delta / day_duration
-	time_of_day = fmod(time_of_day, 1.0)
+		
+	# --- NUEVA INTERFAZ MANUAL DE LUZ ---
+	var canvas = CanvasLayer.new()
+	add_child(canvas)
+	
+	var label = Label.new()
+	label.text = "Control Manual del Sol"
+	label.position = Vector2(20, 20)
+	canvas.add_child(label)
+	
+	var slider = HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.01
+	slider.value = 0.5 # 0.5 es el mediodía
+	slider.custom_minimum_size = Vector2(300, 20)
+	slider.position = Vector2(20, 50)
+	slider.value_changed.connect(_on_slider_changed)
+	canvas.add_child(slider)
 	
 	_update_lighting()
+
+func _on_slider_changed(value: float):
+	time_of_day = value
+	_update_lighting()
+
+func _process(delta):
+	# time_of_day += delta / day_duration  <-- DESACTIVADO: La luz ya no gira sola
+	# time_of_day = fmod(time_of_day, 1.0)
+	
+	# _update_lighting() ya no necesita correr cada frame, se llama solo al mover la barra
+	pass
 	
 	# DEBUG
 	debug_timer += delta

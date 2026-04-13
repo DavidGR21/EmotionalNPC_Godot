@@ -3,8 +3,13 @@ extends Node
 @export var npc_path: NodePath
 @export var api_manager_path: NodePath
 @export var npc_id: String = "npc_01"
-@export var personality: String = "normal"
+@export var personality: String = "cobarde"
 @export var update_interval_sec: float = 0.4
+@export var perception_label: Label
+
+@export_group("World Perception")
+@export var player_path: NodePath
+@export var day_night_controller_path: NodePath
 
 @export var env_sound: float = 0.0
 @export var env_threat: float = 0.0
@@ -13,6 +18,8 @@ extends Node
 var _npc: Node
 var _api_manager: Node
 var _update_timer: Timer
+var _player: Node3D
+var _day_night: Node
 
 func _ready() -> void:
 	_npc = get_node_or_null(npc_path)
@@ -29,9 +36,25 @@ func _ready() -> void:
 	if _npc.has_method("setup"):
 		_npc.call("setup", npc_id, personality)
 
+	if player_path:
+		_player = get_node_or_null(player_path)
+	if day_night_controller_path:
+		_day_night = get_node_or_null(day_night_controller_path)
+
 	_connect_api_signals()
 	_setup_timer()
 	_send_init_request()
+	
+	# --- AUTO-CREACIÓN DE ETIQUETA DE PERCEPCIÓN ---
+	if perception_label == null:
+		var canvas = get_tree().root.find_child("CanvasLayer", true, false)
+		if canvas:
+			var new_label = Label.new()
+			new_label.name = "PerceptionLabel"
+			# Lo ponemos un poco más abajo del panel emocional (suponiendo que está en el mismo Canvas)
+			new_label.position = Vector2(20, 250) # Coordenada fija segura o relativa si tuviéramos referencia
+			canvas.add_child(new_label)
+			perception_label = new_label
 
 func _connect_api_signals() -> void:
 	if not _api_manager.request_completed.is_connected(_on_api_request_completed):
@@ -98,4 +121,56 @@ func _on_api_request_failed(endpoint: String, status_code: int, message: String)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	pass
+	if _npc == null: return
+	
+	# 1. Calcular Luz dinámica basada en el ciclo día/noche
+	if _day_night != null and _day_night.has_method("_get_height"):
+		var sun_height = _day_night.call("_get_height")
+		# Mapear la altura del sol (-1 a 1) a nivel de luz (0 a 1)
+		env_light = clamp((sun_height + 0.3) / 0.8, 0.0, 1.0)
+	else:
+		# Si no hay nodo de día/noche vinculado, simulamos un ciclo de luz lento para pruebas
+		var t_light = float(Time.get_ticks_msec()) / 1000.0
+		# Ciclo súper lento (emula horas del día)
+		env_light = (sin(t_light * 0.1) + 1.0) * 0.5 
+		
+	# 2. Calcular Amenaza y Sonido respecto al Jugador
+	if _player != null and _player != _npc:
+		# Lógica real (Se activará automáticamente cuando asignes a tu Player real)
+		var distance = _npc.global_position.distance_to(_player.global_position)
+		
+		# AMENAZA: Ahora más sensible. 1.0 a los 4m, llega a 0.0 a los 16m.
+		env_threat = clamp(1.0 - ((distance - 4.0) / 12.0), 0.0, 1.0)
+		
+		# SONIDO: Detección robusta de rugidos y pasos
+		var roar_noise = 0.0
+		if "roar_intensity" in _player:
+			roar_noise = _player.roar_intensity
+		
+		if "velocity" in _player:
+			var player_speed = _player.velocity.length()
+			var speed_factor = clamp(player_speed / 5.0, 0.0, 1.0) 
+			
+			# Atenuación auditiva (pasos amortiguados por distancia)
+			var atten = clamp(1.0 - (distance / 12.0), 0.0, 1.0)
+			
+			# El rugido (roar_noise) es GLOBAL y ADITIVO. Los pasos son locales.
+			env_sound = clamp((speed_factor * atten) + roar_noise, 0.0, 1.0)
+		else:
+			# Si es un objeto estático o solo el rugido
+			env_sound = clamp(roar_noise, 0.0, 1.0)
+	else:
+		# SIMULACIÓN DE PRUEBA (Se ejecuta mientras el Player esté vacío)
+		# Variamos los datos progresivamente usando ondas en base al reloj para inyectar "eventos" imaginarios
+		var t = float(Time.get_ticks_msec()) / 1000.0
+		
+		var wave_threat = (sin(t * 0.3) + 1.0) * 0.5 # Ciclo largo de ~20 segs
+		var wave_sound = (cos(t * 0.7 + 2.0) + 1.0) * 0.5 # Ciclo irregular
+		
+		# Aplicamos picos intensos en vez de ruido constante para que la IA tenga descanso
+		env_threat = clamp((wave_threat * 1.5) - 0.7, 0.0, 1.0) 
+		env_sound = clamp((wave_sound * 1.8) - 1.0, 0.0, 1.0)
+		
+	# 3. Actualizar Interfaz en tiempo real
+	if perception_label:
+		perception_label.text = "--- PERCEPCIÓN NPC ---\nSonido: %.2f\nAmenaza: %.2f\nLuz: %.2f" % [env_sound, env_threat, env_light]
