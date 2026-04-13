@@ -5,6 +5,7 @@ extends Node
 @export var npc_id: String = "npc_01"
 @export var personality: String = "cobarde"
 @export var update_interval_sec: float = 0.4
+@export var perception_label: Label
 
 @export_group("World Perception")
 @export var player_path: NodePath
@@ -43,6 +44,17 @@ func _ready() -> void:
 	_connect_api_signals()
 	_setup_timer()
 	_send_init_request()
+	
+	# --- AUTO-CREACIÓN DE ETIQUETA DE PERCEPCIÓN ---
+	if perception_label == null:
+		var canvas = get_tree().root.find_child("CanvasLayer", true, false)
+		if canvas:
+			var new_label = Label.new()
+			new_label.name = "PerceptionLabel"
+			# Lo ponemos un poco más abajo del panel emocional (suponiendo que está en el mismo Canvas)
+			new_label.position = Vector2(20, 250) # Coordenada fija segura o relativa si tuviéramos referencia
+			canvas.add_child(new_label)
+			perception_label = new_label
 
 func _connect_api_signals() -> void:
 	if not _api_manager.request_completed.is_connected(_on_api_request_completed):
@@ -158,3 +170,7 @@ func _process(delta: float) -> void:
 		# Aplicamos picos intensos en vez de ruido constante para que la IA tenga descanso
 		env_threat = clamp((wave_threat * 1.5) - 0.7, 0.0, 1.0) 
 		env_sound = clamp((wave_sound * 1.8) - 1.0, 0.0, 1.0)
+		
+	# 3. Actualizar Interfaz en tiempo real
+	if perception_label:
+		perception_label.text = "--- PERCEPCIÓN NPC ---\nSonido: %.2f\nAmenaza: %.2f\nLuz: %.2f" % [env_sound, env_threat, env_light]
