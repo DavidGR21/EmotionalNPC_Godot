@@ -46,8 +46,9 @@ func _physics_process(delta: float) -> void:
 		# Durante el rugido, la bestia se queda quieta y emite un pulso de ruido brutal.
 		_roar_timer -= delta
 		
-		# Fade out suave: empieza en 1.0 y baja hasta 0.0
-		roar_intensity = clamp(_roar_timer / roar_duration, 0.0, 1.0)
+		# Curva de rugido: Se mantiene en 1.0 durante la mayor parte y cae rápido al final
+		# (Si el timer esta arriba del 20% del total, la escala es 1.0)
+		roar_intensity = clamp(_roar_timer / (roar_duration * 0.8), 0.0, 1.0)
 		
 		if _roar_timer <= 0.0:
 			_is_roaring = false

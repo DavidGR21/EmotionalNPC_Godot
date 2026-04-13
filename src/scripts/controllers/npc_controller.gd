@@ -139,26 +139,26 @@ func _process(delta: float) -> void:
 		# Lógica real (Se activará automáticamente cuando asignes a tu Player real)
 		var distance = _npc.global_position.distance_to(_player.global_position)
 		
-		# AMENAZA: Aumenta si el jugador está muuy cerca (<= 2m la amenaza es 1.0, >= 8m la amenaza es 0)
-		env_threat = clamp(1.0 - ((distance - 1.5) / 6.5), 0.0, 1.0)
+		# AMENAZA: Ahora más sensible. 1.0 a los 4m, llega a 0.0 a los 16m.
+		env_threat = clamp(1.0 - ((distance - 4.0) / 12.0), 0.0, 1.0)
 		
-		# SONIDO: Mezcla los pasos del jugador con los RUGIDOS del T-Rex
+		# SONIDO: Detección robusta de rugidos y pasos
 		var roar_noise = 0.0
 		if "roar_intensity" in _player:
 			roar_noise = _player.roar_intensity
 		
 		if "velocity" in _player:
 			var player_speed = _player.velocity.length()
-			var speed_factor = clamp(player_speed / 5.0, 0.0, 1.0) # 5.0 es la velocidad normal
+			var speed_factor = clamp(player_speed / 5.0, 0.0, 1.0) 
 			
 			# Atenuación auditiva (pasos amortiguados por distancia)
 			var atten = clamp(1.0 - (distance / 12.0), 0.0, 1.0)
 			
-			# El rugido (roar_noise) no usa 'atten' para que retumbe mecánicamente en toda la isla entera.
-			env_sound = max(speed_factor * atten, roar_noise)
+			# El rugido (roar_noise) es GLOBAL y ADITIVO. Los pasos son locales.
+			env_sound = clamp((speed_factor * atten) + roar_noise, 0.0, 1.0)
 		else:
-			# Si es un objeto extraño que no camina, solo escucha su rugido de forma global.
-			env_sound = roar_noise
+			# Si es un objeto estático o solo el rugido
+			env_sound = clamp(roar_noise, 0.0, 1.0)
 	else:
 		# SIMULACIÓN DE PRUEBA (Se ejecuta mientras el Player esté vacío)
 		# Variamos los datos progresivamente usando ondas en base al reloj para inyectar "eventos" imaginarios
