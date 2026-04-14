@@ -38,6 +38,7 @@ func _ready():
 	slider.value = 0.5 # 0.5 es el mediodía
 	slider.custom_minimum_size = Vector2(300, 20)
 	slider.position = Vector2(20, 50)
+	slider.focus_mode = Control.FOCUS_NONE # Solo interacción con mouse
 	slider.value_changed.connect(_on_slider_changed)
 	canvas.add_child(slider)
 	
