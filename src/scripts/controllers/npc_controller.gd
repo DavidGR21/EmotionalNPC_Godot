@@ -15,11 +15,20 @@ extends Node
 @export var env_threat: float = 0.0
 @export var env_light: float = 0.0
 
+@export_group("Perception Tuning")
+@export var threat_near_distance: float = 4.0
+@export var threat_far_distance: float = 28.0
+@export var roar_hearing_near_distance: float = 8.0
+@export var roar_hearing_far_distance: float = 28.0
+@export var sound_attack_speed: float = 6.0
+@export var sound_release_speed: float = 2.0
+
 var _npc: Node
 var _api_manager: Node
 var _update_timer: Timer
 var _player: Node3D
 var _day_night: Node
+var _sound_target: float = 0.0
 
 func _ready() -> void:
 	_npc = get_node_or_null(npc_path)
@@ -139,13 +148,17 @@ func _process(delta: float) -> void:
 		# Lógica real (Se activará automáticamente cuando asignes a tu Player real)
 		var distance = _npc.global_position.distance_to(_player.global_position)
 		
-		# AMENAZA: Ahora más sensible. 1.0 a los 4m, llega a 0.0 a los 16m.
-		env_threat = clamp(1.0 - ((distance - 4.0) / 12.0), 0.0, 1.0)
+		# AMENAZA: configurable y con mayor alcance por defecto.
+		var threat_span = maxf(threat_far_distance - threat_near_distance, 0.01)
+		env_threat = clamp(1.0 - ((distance - threat_near_distance) / threat_span), 0.0, 1.0)
 		
 		# SONIDO: Detección robusta de rugidos y pasos
 		var roar_noise = 0.0
 		if "roar_intensity" in _player:
-			roar_noise = _player.roar_intensity
+			# El rugido se atenúa por distancia: cerca fuerte, lejos inaudible.
+			var roar_span = maxf(roar_hearing_far_distance - roar_hearing_near_distance, 0.01)
+			var roar_atten = clamp(1.0 - ((distance - roar_hearing_near_distance) / roar_span), 0.0, 1.0)
+			roar_noise = _player.roar_intensity * roar_atten
 		
 		if "velocity" in _player:
 			var player_speed = _player.velocity.length()
@@ -154,11 +167,11 @@ func _process(delta: float) -> void:
 			# Atenuación auditiva (pasos amortiguados por distancia)
 			var atten = clamp(1.0 - (distance / 12.0), 0.0, 1.0)
 			
-			# El rugido (roar_noise) es GLOBAL y ADITIVO. Los pasos son locales.
-			env_sound = clamp((speed_factor * atten) + roar_noise, 0.0, 1.0)
+			# El rugido (roar_noise) ya llega atenuado por distancia. Los pasos también son locales.
+			_sound_target = clamp((speed_factor * atten) + roar_noise, 0.0, 1.0)
 		else:
 			# Si es un objeto estático o solo el rugido
-			env_sound = clamp(roar_noise, 0.0, 1.0)
+			_sound_target = clamp(roar_noise, 0.0, 1.0)
 	else:
 		# SIMULACIÓN DE PRUEBA (Se ejecuta mientras el Player esté vacío)
 		# Variamos los datos progresivamente usando ondas en base al reloj para inyectar "eventos" imaginarios
@@ -169,7 +182,11 @@ func _process(delta: float) -> void:
 		
 		# Aplicamos picos intensos en vez de ruido constante para que la IA tenga descanso
 		env_threat = clamp((wave_threat * 1.5) - 0.7, 0.0, 1.0) 
-		env_sound = clamp((wave_sound * 1.8) - 1.0, 0.0, 1.0)
+		_sound_target = clamp((wave_sound * 1.8) - 1.0, 0.0, 1.0)
+
+	# Suavizado para que el sonido no suba/baje de golpe.
+	var sound_speed = sound_attack_speed if _sound_target >= env_sound else sound_release_speed
+	env_sound = move_toward(env_sound, _sound_target, sound_speed * delta)
 		
 	# 3. Actualizar Interfaz en tiempo real
 	if perception_label:
