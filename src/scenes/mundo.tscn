@@ -197,7 +197,7 @@ script = ExtResource("13_x355f")
 script = ExtResource("14_aakig")
 npc_path = NodePath("../Player")
 api_manager_path = NodePath("../ApiManager")
-personality = "superviviente"
+personality = "miedosa"
 player_path = NodePath("../TRex")
 day_night_controller_path = NodePath("../DayNightController")
 
@@ -429,7 +429,7 @@ audio_roar_path = NodePath("AudioStreamPlayer3D")
 [node name="Root Scene" parent="TRex" unique_id=1267165661 instance=ExtResource("16_60xvl")]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0, 0)
 
-[node name="Skeleton3D" parent="TRex/Root Scene/RootNode/Armature" parent_id_path=PackedInt32Array(1267165661, 114722006) index="0" unique_id=1050551039]
+[node name="Skeleton3D" parent="TRex/Root Scene/RootNode/Armature" parent_id_path=PackedInt32Array(1267165661, 920795183) index="0" unique_id=1814089617]
 bones/1/position = Vector3(0.00030816198, 0.042577222, 0.0031892583)
 bones/1/rotation = Quaternion(-0.1792612, 4.3727063e-18, 4.0470698e-17, 0.9838016)
 bones/3/rotation = Quaternion(-0.6684481, 0.7071822, 0.14994128, -0.17489426)
@@ -456,28 +456,28 @@ bones/27/rotation = Quaternion(0.7212817, -0.03884801, -0.0069015645, 0.6915171)
 bones/28/position = Vector3(0.008702491, 0.00086170435, -0.002756152)
 bones/28/rotation = Quaternion(0.7069259, -0.028195357, -0.028164456, 0.70616394)
 
-[node name="FrontFoot_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="0" unique_id=124550914]
+[node name="FrontFoot_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="0" unique_id=742287746]
 transform = Transform3D(0.9991044, -0.042137627, 0.0038441326, 0.008624185, 0.2917384, 0.95645916, -0.041424282, -0.95556927, 0.29184067, -0.005613059, -0.017315531, 0.025894703)
 
-[node name="BackLowLeg_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="1" unique_id=1041520977]
+[node name="BackLowLeg_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="1" unique_id=551321313]
 transform = Transform3D(0.9999349, -0.0056171436, -0.009919236, 0.0074891225, -0.3323102, 0.9431404, -0.008594118, -0.94315314, -0.3322462, -0.00983854, 0.015210085, 0.010521281)
 
-[node name="FrontFoot_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="2" unique_id=1968493435]
+[node name="FrontFoot_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="2" unique_id=1403136939]
 transform = Transform3D(0.99942476, 0.03218866, -0.010678232, -0.003576856, 0.41315797, 0.9106525, 0.033724323, -0.9100903, 0.41303563, 0.0055953963, -0.019643355, 0.026603453)
 
-[node name="BackLowLeg_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="3" unique_id=1751249856]
+[node name="BackLowLeg_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="3" unique_id=736750621]
 transform = Transform3D(0.99962217, -0.0056926785, -0.026884742, 0.013955971, -0.7376027, 0.6750907, -0.023673417, -0.6752109, -0.7372446, 0.009055588, 0.010162284, 0.007727146)
 
-[node name="Tail5" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="4" unique_id=514735141]
+[node name="Tail5" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="4" unique_id=955451297]
 transform = Transform3D(0.93968153, -0.29264498, -0.17708068, 0.18713526, 0.8731949, -0.45001262, 0.28631982, 0.38973033, 0.8752892, 0.002125836, 0.045998007, 0.016041664)
 
-[node name="Head" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="5" unique_id=1430473985]
+[node name="Head" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="5" unique_id=489046658]
 transform = Transform3D(-0.88021874, 0.0019506521, 0.4745639, 0.29838142, -0.7753314, 0.5566232, 0.36903006, 0.63155144, 0.68187904, -0.0011297201, -0.023933735, 0.05034001)
 
-[node name="BackFoot_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="6" unique_id=2123084312]
+[node name="BackFoot_R" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="6" unique_id=1630320678]
 transform = Transform3D(0.9968864, -0.046495616, -0.06368407, -0.043772172, -0.9980934, 0.043513056, -0.065585814, -0.040589925, -0.997021, -0.01001821, 0.01208314, 0.0009948337)
 
-[node name="BackFoot_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="7" unique_id=474311266]
+[node name="BackFoot_L" parent="TRex/Root Scene/RootNode/Armature/Skeleton3D" index="7" unique_id=68882190]
 transform = Transform3D(0.99682355, -8.6613e-05, -0.07964146, -7.09487e-07, -0.99999934, 0.0010786052, -0.0796415, -0.0010751485, -0.9968229, 0.008702491, 0.0026431556, 0.00086170464)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TRex" unique_id=384430998]

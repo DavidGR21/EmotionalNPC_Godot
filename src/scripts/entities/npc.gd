@@ -20,26 +20,43 @@ signal state_changed(previous_state: String, new_state: String)
 
 const VALID_STATES := {
 	"flee": true,
-	"hide": true,
-	"observe": true,
+	"dormir": true,
 	"explore": true,
 	"idle": true
+}
+
+const DECISION_TO_STATE := {
+	"flee": "flee",
+	"sleep": "dormir",
+	"dormir": "dormir",
+	"explore": "explore",
+	"idle": "idle"
+}
+
+const ATTITUDE_TO_STATE := {
+	"panico / supervivencia": "flee",
+	"panico": "flee",
+	"defensivo / cauteloso": "dormir",
+	"defensivo": "dormir",
+	"curioso / confiado": "explore",
+	"curioso": "explore",
+	"neutral / pasivo": "idle",
+	"neutral": "idle",
+	"sin clasificacion": "idle"
 }
 
 const STATE_TO_ANIMATION := {
 	"idle": "idle",
 	"explore": "walk",
-	"observe": "static",
 	"flee": "sprint",
-	"hide": "die"
+	"dormir": "die"
 }
 
 const STATE_TO_EMOJI := {
-	"idle": "💤",
+	"idle": "😟",
 	"explore": "🌳",
-	"observe": "🧐",
 	"flee": "🏃💨",
-	"hide": "🙈"
+	"dormir": "😴"
 }
 
 var npc_id: String = ""
@@ -63,6 +80,11 @@ func apply_api_state(data: Dictionary) -> void:
 		# Si la API no manda accion/estado nuevo, se mantiene el estado actual.
 		return
 	set_state(next_state)
+
+	var decision_text := _extract_text_field(data, "decision")
+	var attitude_text := _extract_text_field(data, "attitude")
+	var emotion_text := _extract_text_field(data, "emotion")
+	var top_emotions_text := _extract_top_emotions_text(data)
 
 	# --- NUEVA LÓGICA DE COLOR (Espectro Emocional) ---
 	print("Data in apply_api_state: ", data)
@@ -97,7 +119,20 @@ func apply_api_state(data: Dictionary) -> void:
 		# 6. Actualizar Texto de Métricas en el Label
 		if metrics_label:
 			var stress = float(metrics.get("stress", 0.0))
-			metrics_label.text = "Valence: %.2f\nArousal: %.2f\nStress: %.2f" % [valence, arousal, stress]
+			var lines: PackedStringArray = [
+				"Valence: %.2f" % valence,
+				"Arousal: %.2f" % arousal,
+				"Stress: %.2f" % stress
+			]
+			if emotion_text != "":
+				lines.append("Emotion: %s" % emotion_text)
+			if decision_text != "":
+				lines.append("Decision: %s" % decision_text)
+			if attitude_text != "":
+				lines.append("Attitude: %s" % attitude_text)
+			if top_emotions_text != "":
+				lines.append("Top: %s" % top_emotions_text)
+			metrics_label.text = "\n".join(lines)
 			
 			# 7. Lógica de Emoji de Pánico (Si el estrés es altísimo, ignoramos el estado)
 			if emoji_label:
@@ -108,6 +143,20 @@ func apply_api_state(data: Dictionary) -> void:
 					emoji_label.text = STATE_TO_EMOJI.get(current_state, "❓")
 		else:
 			push_warning("NPC %s: metrics_label no asignado." % npc_id)
+
+	elif metrics_label:
+		var fallback_lines: PackedStringArray = []
+		if emotion_text != "":
+			fallback_lines.append("Emotion: %s" % emotion_text)
+		if decision_text != "":
+			fallback_lines.append("Decision: %s" % decision_text)
+		if attitude_text != "":
+			fallback_lines.append("Attitude: %s" % attitude_text)
+		if top_emotions_text != "":
+			fallback_lines.append("Top: %s" % top_emotions_text)
+		if fallback_lines.size() > 0:
+			metrics_label.text = "\n".join(fallback_lines)
+
 func set_state(new_state: String) -> void:
 	if not VALID_STATES.has(new_state):
 		push_warning("NPC %s: estado invalido '%s'." % [npc_id, new_state])
@@ -136,19 +185,75 @@ func set_state(new_state: String) -> void:
 	state_changed.emit(previous, current_state)
 
 func _extract_state_from_response(data: Dictionary) -> String:
+	if data.has("decision"):
+		var decision_state := _map_decision_to_state(str(data["decision"]))
+		if decision_state != "":
+			return decision_state
+
+	if data.has("attitude"):
+		var attitude_state := _map_attitude_to_state(str(data["attitude"]))
+		if attitude_state != "":
+			return attitude_state
+
 	if data.has("state"):
-		return _normalize_state(str(data["state"]))
+		var state_mapped := _map_decision_to_state(str(data["state"]))
+		if state_mapped != "":
+			return state_mapped
 
 	if data.has("action"):
-		return _normalize_state(str(data["action"]))
-
-	if data.has("decision"):
-		return _normalize_state(str(data["decision"]))
+		var action_mapped := _map_decision_to_state(str(data["action"]))
+		if action_mapped != "":
+			return action_mapped
 
 	return ""
 
 func _normalize_state(raw_value: String) -> String:
 	return raw_value.strip_edges().to_lower()
+
+func _normalize_attitude(raw_value: String) -> String:
+	return raw_value.strip_edges().to_lower().replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+func _map_decision_to_state(raw_decision: String) -> String:
+	var normalized := _normalize_state(raw_decision)
+	if DECISION_TO_STATE.has(normalized):
+		return str(DECISION_TO_STATE[normalized])
+
+	if VALID_STATES.has(normalized):
+		return normalized
+
+	return ""
+
+func _map_attitude_to_state(raw_attitude: String) -> String:
+	var normalized := _normalize_attitude(raw_attitude)
+	if ATTITUDE_TO_STATE.has(normalized):
+		return str(ATTITUDE_TO_STATE[normalized])
+	return ""
+
+func _extract_text_field(data: Dictionary, field_name: String) -> String:
+	if not data.has(field_name):
+		return ""
+	return str(data[field_name]).strip_edges()
+
+func _extract_top_emotions_text(data: Dictionary) -> String:
+	if data.has("top_emotions") and data["top_emotions"] is Array:
+		var items := data["top_emotions"] as Array
+		if items.is_empty():
+			return ""
+		var values: PackedStringArray = []
+		for item in items:
+			values.append(str(item))
+		return ", ".join(values)
+
+	if data.has("top_options") and data["top_options"] is Array:
+		var options := data["top_options"] as Array
+		if options.is_empty():
+			return ""
+		var option_values: PackedStringArray = []
+		for option in options:
+			option_values.append(str(option))
+		return ", ".join(option_values)
+
+	return ""
 
 func _play_animation_for_state(state: String) -> void:
 	if _animation_player == null:
@@ -263,16 +368,14 @@ func _physics_process(delta: float) -> void:
 
 
 func _get_target_position_for_state() -> Vector3:
-	if current_state == "explore" or current_state == "idle":
+	if current_state == "explore":
 		# Nuevo Sistema: Elegir puntos aleatorios progresivamente (Waypoints) en lugar de dar vueltas tontas
 		if global_position.distance_to(_current_waypoint) < 0.8 or _waypoint_timer <= 0.0:
 			var rand_angle = randf() * TAU
 			# Ignora el "walk radius 0.7" si es muy chico, garantizamos caminatas de 3 a 5 metros
 			var dist = randf_range(2.0, maxf(walk_radius, 5.0))
 			_current_waypoint = _state_anchor + Vector3(cos(rand_angle), 0.0, sin(rand_angle)) * dist
-			
-			# En idle se cansa rápido (elige nuevo punto y asimila más rápido), explore es más consistente
-			_waypoint_timer = randf_range(4.0, 7.0) if current_state == "idle" else randf_range(2.5, 5.0)
+			_waypoint_timer = randf_range(2.5, 5.0)
 			
 		return _current_waypoint
 
@@ -286,9 +389,6 @@ func _get_target_position_for_state() -> Vector3:
 func _get_move_speed_for_state() -> float:
 	if current_state == "explore":
 		return maxf(walk_speed, 0.1)
-		
-	if current_state == "idle":
-		return maxf(walk_speed * 0.5, 0.1) # Paseo calmado si está en idle
 
 	if current_state == "flee":
 		return maxf(sprint_speed, 0.1)
@@ -300,17 +400,14 @@ func _sync_movement_animation(desired_velocity: Vector3) -> void:
 	if _animation_player == null:
 		return
 
-	if current_state != "explore" and current_state != "flee" and current_state != "idle":
+	# Solo sincronizamos por movimiento los estados que realmente se desplazan.
+	if current_state != "explore" and current_state != "flee":
 		return
 
 	if desired_velocity.length() < 0.03:
 		return
 
 	var expected_animation: String = str(STATE_TO_ANIMATION.get(current_state, ""))
-	
-	# Si es idle pero se está moviendo (nuestra nueva lógica), forzamos la animación a "walk"
-	if current_state == "idle" and desired_velocity.length() >= 0.03:
-		expected_animation = "walk"
 		
 	if expected_animation == "":
 		return

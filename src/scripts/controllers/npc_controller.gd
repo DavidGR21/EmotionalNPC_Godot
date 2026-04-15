@@ -105,20 +105,31 @@ func _on_api_request_completed(endpoint: String, data: Dictionary) -> void:
 		return
 
 	if endpoint == "/npc/%s/update" % npc_id:
-		var api_action := _extract_api_action(data)
-		print("NPC %s - accion API: %s" % [npc_id, api_action])
+		var api_summary := _extract_api_summary(data)
+		print("NPC %s - respuesta API: %s" % [npc_id, api_summary])
 		if _npc.has_method("apply_api_state"):
 			_npc.call("apply_api_state", data)
 
-func _extract_api_action(data: Dictionary) -> String:
+func _extract_api_summary(data: Dictionary) -> String:
+	var decision := ""
+	var attitude := ""
+	var emotion := ""
+
+	if data.has("decision"):
+		decision = str(data["decision"])
+	if data.has("attitude"):
+		attitude = str(data["attitude"])
+	if data.has("emotion"):
+		emotion = str(data["emotion"])
+
+	if decision != "" or attitude != "" or emotion != "":
+		return "decision=%s | attitude=%s | emotion=%s" % [decision, attitude, emotion]
+
 	if data.has("action"):
 		return str(data["action"])
 
 	if data.has("state"):
 		return str(data["state"])
-
-	if data.has("decision"):
-		return str(data["decision"])
 
 	return "<sin accion>"
 
