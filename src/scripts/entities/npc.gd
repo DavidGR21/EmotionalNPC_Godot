@@ -59,6 +59,18 @@ const STATE_TO_EMOJI := {
 	"dormir": "😴"
 }
 
+const HUD_MARGIN := 16.0
+const HUD_GAP := 10.0
+const HUD_WIDTH_RATIO := 0.28
+const HUD_MIN_WIDTH := 220.0
+const HUD_MAX_WIDTH := 360.0
+const HUD_PANEL_HEIGHT := 100.0
+const HUD_LABEL_HEIGHT_RATIO := 0.45
+const HUD_LABEL_MIN_HEIGHT := 120.0
+const HUD_LABEL_PADDING := 8.0
+const HUD_LABEL_BG_COLOR := Color(0.05, 0.05, 0.05, 0.62)
+const HUD_LABEL_TEXT_COLOR := Color(0.78, 0.78, 0.78, 1.0)
+
 var npc_id: String = ""
 var personality: String = "normal"
 var current_state: String = "idle"
@@ -69,6 +81,7 @@ var _current_waypoint: Vector3
 var _waypoint_timer: float = 0.0
 var _state_time: float = 0.0
 var _state_forward: Vector3 = Vector3.FORWARD
+var _metrics_background: ColorRect
 
 func setup(id_value: String, personality_value: String = "normal") -> void:
 	npc_id = id_value
@@ -288,11 +301,11 @@ func _ready() -> void:
 	if metrics_label == null and panel_emocional != null:
 		var new_label = Label.new()
 		new_label.name = "DynamicMetricsLabel"
-		# Posicionar justo debajo del panel emocional
-		new_label.position = panel_emocional.position + Vector2(0, panel_emocional.size.y + 10)
 		# Añadirlo al mismo padre que el panel
 		panel_emocional.get_parent().add_child(new_label)
 		metrics_label = new_label
+	
+	_configure_hud_layout()
 		
 	if emoji_label == null:
 		var new_emoji = Label3D.new()
@@ -316,6 +329,52 @@ func _ready() -> void:
 	_state_anchor = global_position
 	_current_waypoint = _state_anchor
 	_play_animation_for_state(current_state)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_SIZE_CHANGED:
+		_configure_hud_layout()
+
+
+func _configure_hud_layout() -> void:
+	if panel_emocional == null:
+		return
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+
+	var hud_width := clampf(viewport_size.x * HUD_WIDTH_RATIO, HUD_MIN_WIDTH, HUD_MAX_WIDTH)
+	panel_emocional.custom_minimum_size = Vector2(hud_width, HUD_PANEL_HEIGHT)
+	panel_emocional.size = Vector2(hud_width, HUD_PANEL_HEIGHT)
+	panel_emocional.position = Vector2(viewport_size.x - hud_width - HUD_MARGIN, HUD_MARGIN)
+
+	if metrics_label == null:
+		return
+
+	if _metrics_background == null:
+		_metrics_background = panel_emocional.get_parent().get_node_or_null("MetricsBackground") as ColorRect
+		if _metrics_background == null:
+			_metrics_background = ColorRect.new()
+			_metrics_background.name = "MetricsBackground"
+			_metrics_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_metrics_background.color = HUD_LABEL_BG_COLOR
+			_metrics_background.z_index = -1
+			panel_emocional.get_parent().add_child(_metrics_background)
+
+	metrics_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	metrics_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	metrics_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	metrics_label.clip_text = true
+	metrics_label.add_theme_color_override("font_color", HUD_LABEL_TEXT_COLOR)
+	metrics_label.custom_minimum_size = Vector2(hud_width - (HUD_LABEL_PADDING * 2.0), HUD_LABEL_MIN_HEIGHT - (HUD_LABEL_PADDING * 2.0))
+	var metrics_bg_size := Vector2(hud_width, maxf(HUD_LABEL_MIN_HEIGHT, viewport_size.y * HUD_LABEL_HEIGHT_RATIO))
+	var metrics_bg_pos := panel_emocional.position + Vector2(0.0, panel_emocional.size.y + HUD_GAP)
+	_metrics_background.position = metrics_bg_pos
+	_metrics_background.size = metrics_bg_size
+	metrics_label.position = metrics_bg_pos + Vector2(HUD_LABEL_PADDING, HUD_LABEL_PADDING)
+	metrics_label.size = metrics_bg_size - Vector2(HUD_LABEL_PADDING * 2.0, HUD_LABEL_PADDING * 2.0)
+	metrics_label.add_theme_font_size_override("font_size", 14)
 
 
 func _physics_process(delta: float) -> void:
